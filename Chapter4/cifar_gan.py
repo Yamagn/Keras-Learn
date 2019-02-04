@@ -13,7 +13,7 @@ from keras.datasets import cifar10
 from keras_adversarial.image_grid_callback import ImageGridCallback
 from keras_adversarial import AdversarialModel, simple_gan, gan_targets, fix_names
 from keras_adversarial import AdversarialOptimizerSimultaneous, normal_latent_sampling
-from Chapter4.image_utils import dim_ordering_unfix, dim_ordering_shape
+from image_utils import dim_ordering_unfix, dim_ordering_shape
 
 mpl.use("Agg")
 
@@ -33,11 +33,11 @@ def model_generator():
     model.add(BatchNormalization(axis=1))
     model.add(LeakyReLU(0.2))
     model.add(UpSampling2D(size=(2, 2)))
-    model.add(Conv2D(int(nch / 2), (h, h), padding="same", kernel_regularizer=reg()))
+    model.add(Conv2D(int(nch / 4), (h, h), padding="same", kernel_regularizer=reg()))
     model.add(BatchNormalization(axis=1))
     model.add(LeakyReLU(0.2))
     model.add(UpSampling2D(size=(2, 2)))
-    model.add(Conv2D(int(nch / 2), (h, h), padding="same", kernel_regularizer=reg()))
+    model.add(Conv2D(3, (h, h), padding="same", kernel_regularizer=reg()))
     model.add(Activation("sigmoid"))
     return model
 
@@ -66,9 +66,6 @@ def model_disciriminator():
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(LeakyReLU(0.2))
         model.add(c4)
-        model.add(SpatialDropout2D(dropout))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(LeakyReLU(0.2))
         model.add(AveragePooling2D(pool_size=(4, 4), padding="valid"))
         model.add(Flatten())
         model.add(Activation("sigmoid"))
@@ -97,7 +94,7 @@ def example_gan(adversarial_optimizer, path, opt_g, opt_d, nb_epoch, generator, 
     generator.summary()
     d_d.summary()
     gan_g = simple_gan(generator, d_g, None)
-    gan_d = simple_gan(discriminator. d_d, None)
+    gan_d = simple_gan(generator, d_d, None)
     x = gan_g.inputs[1]
     z = normal_latent_sampling((latent_dim,))(x)
     # eliminate z from inputs
@@ -118,11 +115,11 @@ def example_gan(adversarial_optimizer, path, opt_g, opt_d, nb_epoch, generator, 
 
     def generator_sampler():
         xpred = generator.predict(zsamples)
-        xpred = dim_ordering_unfix(xpred.trainspose((0, 2, 3, 1)))
+        xpred = dim_ordering_unfix(xpred.transpose((0, 2, 3, 1)))
         return xpred.reshape((10, 10) + xpred.shape[1:])
 
     generator_cb = ImageGridCallback(
-        os.path.join(path, "epoch-{:03d}".png),
+        os.path.join(path, "epoch-{:03d}.png"),
         generator_sampler, cmap=None
     )
 
@@ -159,9 +156,9 @@ def main():
                 "output/gan-cifar10",
                 opt_g=Adam(1e-4, decay=1e-5),
                 opt_d=Adam(1e-3, decay=1e-5),
-                nb_epoch=1, generator=generator,
+                nb_epoch=100, generator=generator,
                 discriminator=discriminator,
                 latent_dim=latent_dim)
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()
